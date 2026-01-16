@@ -1,5 +1,5 @@
-name: cintabokep 
-description: Nonton anu anu
+name: cintabokep
+description: Nonton Tanpa VPN
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,11 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # VERSI TERBARU & STABIL DI IDX
   http: ^1.2.1
   cached_network_image: ^3.3.1
   url_launcher: ^6.3.0
-  webview_flutter: ^4.8.0  # Ini versi controller baru, bukan yang lama
+  webview_flutter: ^4.8.0
   google_fonts: ^6.2.1
   cupertino_icons: ^1.0.6
 
