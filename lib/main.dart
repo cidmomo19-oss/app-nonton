@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7,10 +8,11 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // ==========================================
-// ⚙️ GANTI LINK INI DENGAN PUNYA LU !!
+// ⚙️ SETTING API
 // ==========================================
-const String API_URL = "https://redstream-api.cidmomo1000.workers.dev/api"; 
-const String APP_NAME = "RedStream";
+// Masukkan Link Worker API Lu (yang ada /api di belakangnya)
+const String API_URL = "https://redstream-api.namalu.workers.dev/api"; 
+const String APP_NAME = "CintaBokep"; // Nama Baru
 
 void main() {
   runApp(const MyApp());
@@ -21,21 +23,33 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ));
+
     return MaterialApp(
       title: APP_NAME,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0A0A0A),
+        scaffoldBackgroundColor: const Color(0xFF000000),
         primaryColor: const Color(0xFFFF0000),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFFFF0000),
+          secondary: Color(0xFFB71C1C),
+        ),
         appBarTheme: AppBarTheme(
-          backgroundColor: const Color(0xFF0F0F0F),
-          titleTextStyle: GoogleFonts.roboto(
+          backgroundColor: const Color(0xFF050505),
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          titleTextStyle: GoogleFonts.bangers( // Font agak nakal/komik dikit
             color: const Color(0xFFFF0000),
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
             letterSpacing: 1.5,
           ),
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
         textTheme: GoogleFonts.robotoTextTheme(
           Theme.of(context).textTheme.apply(bodyColor: Colors.white),
@@ -47,6 +61,9 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// ==========================================
+// 🏠 HOME SCREEN (NATIVE)
+// ==========================================
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
   @override
@@ -56,6 +73,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List videos = [];
   bool isLoading = true;
+  bool isError = false;
 
   @override
   void initState() {
@@ -64,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> fetchVideos() async {
+    setState(() { isLoading = true; isError = false; });
     try {
       final response = await http.get(Uri.parse('$API_URL/home'));
       if (response.statusCode == 200) {
@@ -73,10 +92,14 @@ class _HomeScreenState extends State<HomeScreen> {
             videos = data['data'];
             isLoading = false;
           });
+        } else {
+          setState(() { isError = true; isLoading = false; });
         }
+      } else {
+        setState(() { isError = true; isLoading = false; });
       }
     } catch (e) {
-      setState(() => isLoading = false);
+      setState(() { isError = true; isLoading = false; });
     }
   }
 
@@ -87,76 +110,99 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text(APP_NAME),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
-            onPressed: () {},
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: fetchVideos,
           )
         ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.red))
-          : RefreshIndicator(
-              onRefresh: fetchVideos,
-              color: Colors.red,
-              child: GridView.builder(
-                padding: const EdgeInsets.all(12),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 16 / 14,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemCount: videos.length,
-                itemBuilder: (context, index) {
-                  final video = videos[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => WatchScreen(videoId: video['id'].toString()),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A1A),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+          : isError
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.signal_wifi_bad, color: Colors.red, size: 50),
+                      const SizedBox(height: 10),
+                      const Text("Gagal memuat data"),
+                      TextButton(
+                        onPressed: fetchVideos,
+                        child: const Text("Refresh", style: TextStyle(color: Colors.red)),
+                      )
+                    ],
+                  ),
+                )
+              : GridView.builder(
+                  padding: const EdgeInsets.all(4), // Mepet dikit
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 16 / 11,
+                    crossAxisSpacing: 4,
+                    mainAxisSpacing: 4,
+                  ),
+                  itemCount: videos.length,
+                  itemBuilder: (context, index) {
+                    final video = videos[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => WatchScreen(videoId: video['id'].toString()),
+                          ),
+                        );
+                      },
+                      child: Stack(
+                        fit: StackFit.expand,
                         children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                              child: CachedNetworkImage(
-                                imageUrl: video['poster'] ?? "",
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(color: Colors.grey[900]),
-                                errorWidget: (context, url, error) => const Icon(Icons.error),
+                          // Poster Full
+                          CachedNetworkImage(
+                            imageUrl: video['poster'] ?? "",
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(color: Colors.grey[900]),
+                            errorWidget: (context, url, error) => const Icon(Icons.broken_image),
+                          ),
+                          // Gradient Hitam di Bawah (Biar judul kebaca)
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Container(
+                              height: 50,
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                  colors: [Colors.black, Colors.transparent],
+                                ),
                               ),
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.all(10),
+                          // Judul di atas gambar
+                          Positioned(
+                            bottom: 5, left: 5, right: 5,
                             child: Text(
-                              video['title'] ?? "No Title",
+                              video['title'] ?? "",
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                shadows: [Shadow(blurRadius: 2, color: Colors.black)],
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  );
-                },
-              ),
-            ),
+                    );
+                  },
+                ),
     );
   }
 }
 
+// ==========================================
+// 📺 WATCH SCREEN (ABYSS FRIENDLY)
+// ==========================================
 class WatchScreen extends StatefulWidget {
   final String videoId;
   const WatchScreen({super.key, required this.videoId});
@@ -166,9 +212,9 @@ class WatchScreen extends StatefulWidget {
 
 class _WatchScreenState extends State<WatchScreen> {
   Map? videoData;
-  List relatedVideos = [];
   bool isLoading = true;
-  WebViewController? _webController;
+  late final WebViewController _webController;
+  bool playerReady = false;
 
   @override
   void initState() {
@@ -184,133 +230,122 @@ class _WatchScreenState extends State<WatchScreen> {
         if (data['status'] == 'success') {
           setState(() {
             videoData = data['data'];
-            relatedVideos = data['related'] ?? [];
             isLoading = false;
           });
+          
+          // SETUP PLAYER ABYSS (TANPA BLOKIR IKLAN)
+          // Biar player jalan normal
           _webController = WebViewController()
             ..setJavaScriptMode(JavaScriptMode.unrestricted)
-            ..setBackgroundColor(const Color(0x00000000))
+            ..setBackgroundColor(const Color(0xFF000000))
             ..loadRequest(Uri.parse(videoData!['iframe_url']));
+            
+          setState(() { playerReady = true; });
         }
       }
     } catch (e) { print(e); }
   }
 
+  // BUKA BROWSER UNTUK OUO/GOFILE (AMAN DARI LIMIT WORKER)
   Future<void> _launchDownload() async {
     if (videoData == null) return;
     final Uri url = Uri.parse(videoData!['download_url']);
+    
+    // Mode: LaunchMode.externalApplication
+    // Ini akan melempar link ke Chrome/Browser bawaan HP
+    // User akan melewati Ouo.io di browser mereka sendiri
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      throw Exception('Could not launch $url');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Gagal membuka browser")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Player"),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: Colors.black,
       body: isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.red))
-          : SingleChildScrollView(
+          : SafeArea(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // PLAYER
                   AspectRatio(
                     aspectRatio: 16 / 9,
-                    child: Container(
-                      color: Colors.black,
-                      child: _webController != null 
-                          ? WebViewWidget(controller: _webController!)
-                          : const Center(child: CircularProgressIndicator()),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Stack(
                       children: [
-                        Text(videoData!['title'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red)),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
-                            const SizedBox(width: 5),
-                            Text(videoData!['created_at'].toString().split(" ")[0], style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                            const Spacer(),
-                            if (videoData!['category'] != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(border: Border.all(color: Colors.red), borderRadius: BorderRadius.circular(20)),
-                                child: Text(videoData!['category'], style: const TextStyle(fontSize: 11, color: Colors.red)),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _launchDownload,
-                            icon: const Icon(Icons.download, color: Colors.white),
-                            label: const Text("DOWNLOAD VIDEO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFcc0000),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        playerReady 
+                          ? WebViewWidget(controller: _webController)
+                          : Container(color: Colors.black),
+                        // Tombol Back
+                        Positioned(
+                          top: 10, left: 10,
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), shape: BoxShape.circle),
+                              child: const Icon(Icons.arrow_back, color: Colors.white),
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Divider(color: Colors.grey, thickness: 0.2),
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: const Text("Rekomendasi", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  ),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 16 / 14,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                    ),
-                    itemCount: relatedVideos.length,
-                    itemBuilder: (context, index) {
-                      final vid = relatedVideos[index];
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => WatchScreen(videoId: vid['id'].toString())));
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(8)),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+
+                  // INFO
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            videoData!['title'],
+                            style: GoogleFonts.oswald(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
                             children: [
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                                  child: CachedNetworkImage(imageUrl: vid['poster'] ?? "", width: double.infinity, fit: BoxFit.cover),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF222222),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Colors.red)
                                 ),
+                                child: Text(videoData!['category'] ?? "Viral", style: const TextStyle(fontSize: 12, color: Colors.red)),
                               ),
-                              Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Text(vid['title'], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.white)),
-                              ),
+                              const Spacer(),
+                              const Text("Server: Abyss", style: TextStyle(color: Colors.grey, fontSize: 12)),
                             ],
                           ),
-                        ),
-                      );
-                    },
+                          const SizedBox(height: 30),
+
+                          // TOMBOL DOWNLOAD (Browser)
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton.icon(
+                              onPressed: _launchDownload,
+                              icon: const Icon(Icons.open_in_browser, color: Colors.white),
+                              label: const Text("BUKA LINK DOWNLOAD (BROWSER)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFCC0000),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Center(
+                            child: Text(
+                              "Link akan dibuka di Browser HP (Lewati Ouo.io)",
+                              style: TextStyle(color: Colors.grey, fontSize: 11),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 30),
                 ],
               ),
             ),
